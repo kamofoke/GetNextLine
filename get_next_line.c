@@ -6,38 +6,62 @@
 /*   By: kamofoke <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/06/28 10:04:05 by kamofoke          #+#    #+#             */
-/*   Updated: 2019/06/28 15:25:35 by kamofoke         ###   ########.fr       */
+/*   Updated: 2019/07/05 13:40:59 by kamofoke         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft/libft.h"
 #include "get_next_line.h"
 
-int	get_next_line(const int fd, char **line)
+int	new_line(char **str, char **line, int fd, int val)
 {
-	static char	*c[2147483647];
-	char		buffer[BUFF_SIZE + 1];
-	char		*tmp;
-	ssize_t		b;
-	int			endl;
+	int		i;
+	char	*tmp;
 
-	if (fd < 0 || (!c[fd] && !(c[fd] = ft_strnew(1))) || !line)
-		return (-1);
-	while (!ft_strchr(c[fd], '\n') && (b = read(fd, buffer, BUFF_SIZE)) > 0)
+	i = 0;
+	while (str[fd][i] != '\n' && str[fd][i] != '\0')
+		i++;
+	if (str[fd][i] == '\n')
 	{
-		buffer[b] = '\0';
-		tmp = c[fd];
-		c[fd] = ft_strjoin(c[fd], buffer);
-		ft_strdel(&tmp);
+		*line = ft_strsub(str[fd], 0, i);
+		tmp = ft_strsub(str[fd], i + 1, ft_strlen(str[fd]));
+		free(str[fd]);
+		str[fd] = tmp;
 	}
-	if (b == -1 || !*(tmp = c[fd]))
-		return (b == -1 ? -1 : 0);
-	if ((endl = (ft_strchr(c[fd], '\n') > 0)))
-		*line = ft_strsub(c[fd], 0, ft_strchr(c[fd], '\n') - c[fd]);
-	else
-		*line = ft_strdup(c[fd]);
-	c[fd] = ft_strsub(c[fd], (unsigned int)(ft_strlen(*line) + endl),
-			(size_t)(ft_strlen(c[fd]) - (ft_strlen(*line) + endl)));
-	ft_strdel(&tmp);
-	return (!(!c[fd] && !ft_strlen(*line)));
+	else if (str[fd][i] == '\0')
+	{
+		if (val == BUFF_SIZE)
+			return (get_next_line(fd, line));
+		*line = ft_strdup(str[fd]);
+		ft_strdel(&str[fd]);
+	}
+	return (1);
+}
+
+int	get_next_line(int fd, char **line)
+{
+	static char	*str[1024];
+	int			j;
+	char		*temp;
+	char		buff[BUFF_SIZE + 1];
+
+	if (fd < 0 || !line)
+		return (-1);
+	while ((j = read(fd, buff, BUFF_SIZE)) > 0)
+	{
+		buff[j] = '\0';
+		if (!str[fd])
+			str[fd] = ft_strnew(BUFF_SIZE);
+		temp = ft_strjoin(str[fd], buff);
+		free(str[fd]);
+		str[fd] = temp;
+		if (ft_strchr(buff, '\n'))
+			break ;
+		ft_strclr(buff);
+	}
+	if (j < 0)
+		return (-1);
+	else if (j == 0 && (str[fd] == NULL || str[fd][0] == '\0'))
+		return (0);
+	return (new_line(str, line, fd, j));
 }
